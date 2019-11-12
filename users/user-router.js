@@ -11,7 +11,7 @@ router.post("/register", (req, res) => {
     username: req.body.username,
     password: hash
   };
-  Users.add(newUser)
+  Users.addUser(newUser)
     .then(saved => {
       res.status(201).json(saved);
     })
@@ -35,6 +35,34 @@ router.post("/login", (req, res) => {
     })
     .catch(error => {
       res.status(500).json(error);
+    });
+});
+
+function restricted(req, res, next) {
+  const { username, password } = req.headers;
+  Users.findBy({ username })
+    .first()
+    .then(user => {
+      if (user && bcrypt.compareSync(password, user.password)) {
+        next();
+      } else {
+        res.status(401).json({ message: "You shall not pass!" });
+      }
+    })
+    .catch(err => {
+      res.status(500).json({ message: err.message });
+    });
+}
+
+router.get("/users", restricted, (req, res) => {
+  Users.findAll()
+    .then(users => {
+      res.status(200).json(users);
+    })
+    .catch(err => {
+      res.status(500).json({
+        message: "Could not retrieve users: " + err.message
+      });
     });
 });
 
